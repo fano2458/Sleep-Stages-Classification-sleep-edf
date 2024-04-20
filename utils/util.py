@@ -18,6 +18,8 @@ def load_folds_data(np_data_path, n_folds):
 
     if os.path.exists(r_p_path):
         r_permute = np.load(r_p_path)
+        # print(len(r_permute))
+        # print(77 in r_permute)
     else:
         print ("============== ERROR =================")
         
@@ -29,9 +31,36 @@ def load_folds_data(np_data_path, n_folds):
             files_dict[file_num] = [i]
         else:
             files_dict[file_num].append(i)
+    
+    # print(len(files_dict))        
+    
     files_pairs = []
     for key in files_dict:
-        files_pairs.append(files_dict[key])
+        # print(key)
+        # break
+        if len(files_dict[key]) == 2:
+            files_pairs.append(files_dict[key])
+        
+    counter = 0
+    counter_2 = 0
+    for i in range(len(files_pairs)):
+        if len(files_pairs[i]) == 1:
+            counter += 1
+        elif len(files_pairs[i]) == 2:
+            counter_2 += 1
+        # print(len(files_pairs[i]))
+        
+    print("Total number of 1s is", counter)
+    print("Total number of 2s is", counter_2)
+    
+    mask = np.logical_or(r_permute < counter_2, r_permute >= 78)
+    r_permute = r_permute[mask]
+    
+    print(len(r_permute))
+    
+    # for el in range(counter_2, 78):
+    #     r_permute.remove(el)
+        
     files_pairs = np.array(files_pairs)
     files_pairs = files_pairs[r_permute]
 

@@ -6,6 +6,8 @@ import json
 from data_loader.data_loaders import *
 from model.loss import weighted_CrossEntropyLoss
 from model.metric import *
+from utils.util import load_folds_data, calc_class_weight
+
 
 seed = 2024
 torch.manual_seed(seed=seed)
@@ -94,16 +96,21 @@ def main():
     batch_size = 128
     epochs = 100
     
-    folds_data = load_folds_data(np_data_dir, 10)
+    folds_data = load_folds_data(np_data_dir, 20)
     
-    data_loader, valid_data_loader, data_count = data_generator_np(folds_data[fold_id][0],
-                                                                   folds_data[fold_id][1], batch_size)
-    weights_for_each_class = calc_class_weight(data_count)
+    for fold_id in range(20):
+        data_loader, valid_data_loader, data_count = data_generator_np(folds_data[fold_id][0],
+                                                                    folds_data[fold_id][1], batch_size)
+        weights_for_each_class = calc_class_weight(data_count)
 
-    for epoch in range(epochs):
-        valid_acc, valid_f1 = train_epoch(model, epoch+1, epochs, 
-                                          data_loader, optimizer, criterion,
-                                          weights_for_each_class, valid_data_loader)
+        print("Fold number is ", fold_id)
+
+        # print(next(iter(data_loader))[0].shape)
+
+        # for epoch in range(epochs):
+        #     valid_acc, valid_f1 = train_epoch(model, epoch+1, epochs, 
+        #                                     data_loader, optimizer, criterion,
+        #                                     weights_for_each_class, valid_data_loader)
         
     
 if __name__ == '__main__':
