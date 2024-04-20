@@ -19,7 +19,8 @@ with open('config.json', 'r') as f:
 
 def main():
     batch_size = config['data_loader']['args']['batch_size']
-    print(batch_size)
+    
+    
 
 
 
