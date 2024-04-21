@@ -65,6 +65,9 @@ def load_folds_data(np_data_path, n_folds):
         
     files_pairs = np.array(files_pairs)
     files_pairs = files_pairs[r_permute]
+    
+    # for x in range(len(files_pairs)):
+    #     print(os.path.split(files_pairs[x][0])[-1][3:5], os.path.split(files_pairs[x][1])[-1][3:5])
 
     train_files = np.array_split(files_pairs, n_folds)
     folds_data = {}

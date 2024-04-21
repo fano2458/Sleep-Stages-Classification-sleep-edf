@@ -81,7 +81,6 @@ def train_epoch(model, epoch, total_epochs, data_loader, optimizer, criterion,
     return valid_acc, valid_f1
 
 
-
 def main():
     
     # model = 
@@ -104,8 +103,14 @@ def main():
         weights_for_each_class = calc_class_weight(data_count)
 
         print("Fold number is ", fold_id)
-
-        print(next(iter(data_loader))[0].shape)
+        
+        # Test subject number
+        test_subj_number = os.path.split(folds_data[fold_id][1][0])[-1][3:5] #, os.path.split(folds_data[fold_id][1][1])[-1][3:5])
+        # print(next(iter(data_loader))[0].shape)
+        print("Test subject is", test_subj_number)
+        
+        print(len(data_loader))
+        print(len(valid_data_loader))
 
         # for epoch in range(epochs):
         #     valid_acc, valid_f1 = train_epoch(model, epoch+1, epochs, 
