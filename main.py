@@ -17,7 +17,7 @@ np.random.seed(seed=seed)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-np_data_dir = r'dataset\edf-78'
+np_data_dir = r'dataset\edf-20'
 
 
 def train_epoch(model, epoch, total_epochs, data_loader, optimizer, criterion,
@@ -96,16 +96,16 @@ def main():
     batch_size = 128
     epochs = 100
     
-    folds_data = load_folds_data(np_data_dir, 20)
+    folds_data = load_folds_data(np_data_dir, 19)
     
-    for fold_id in range(20):
+    for fold_id in range(19):
         data_loader, valid_data_loader, data_count = data_generator_np(folds_data[fold_id][0],
                                                                     folds_data[fold_id][1], batch_size)
         weights_for_each_class = calc_class_weight(data_count)
 
         print("Fold number is ", fold_id)
 
-        # print(next(iter(data_loader))[0].shape)
+        print(next(iter(data_loader))[0].shape)
 
         # for epoch in range(epochs):
         #     valid_acc, valid_f1 = train_epoch(model, epoch+1, epochs, 

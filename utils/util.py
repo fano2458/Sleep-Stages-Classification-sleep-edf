@@ -58,6 +58,8 @@ def load_folds_data(np_data_path, n_folds):
     
     print(len(r_permute))
     
+    print(r_permute)
+    
     # for el in range(counter_2, 78):
     #     r_permute.remove(el)
         
