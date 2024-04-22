@@ -94,10 +94,11 @@ class Tokenizer(nn.Module): # Tokenizer can be used to capture spatial informati
             )
                 for i in range(n_conv_layers)
             ],
-            nn.AvgPool2d(kernel_size=pooling_kernel_size,
-                         stride=pooling_stride,
-                         padding=pooling_padding),
+            # nn.AvgPool2d(kernel_size=pooling_kernel_size,
+            #              stride=pooling_stride,
+            #              padding=pooling_padding),
             )
+            
         
         self.flattener = nn.Flatten(2, 3)
 

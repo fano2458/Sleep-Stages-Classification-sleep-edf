@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 
 import json
+import math
 from tqdm import tqdm
 from torchinfo import summary
 from data_loader.data_loaders import *
@@ -21,6 +22,17 @@ np.random.seed(seed=seed)
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 np_data_dir = r'dataset\edf-20'
+
+
+def adjust_learning_rate(optimizer, epoch, warmup=False, warmup_ep=0, enable_cos=True):
+    lr = 3e-4
+    if warmup and epoch < warmup_ep:
+        lr = lr / (warmup_ep - epoch)
+    elif enable_cos:
+        lr *= 0.5 * (1. + math.cos(math.pi * (epoch - warmup_ep) / (100 - warmup_ep)))
+
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
 
 
 def train_epoch(model, epoch, total_epochs, data_loader, optimizer, criterion,
@@ -86,38 +98,41 @@ def train_epoch(model, epoch, total_epochs, data_loader, optimizer, criterion,
 
 
 def main():
-    
-    model = CCT(kernel_sizes=[(1, 25), (1, 25)], stride=(1, 1), padding=(0, 0),
-            pooling_kernel_size=(1, 5), pooling_stride=(1, 5), pooling_padding=(0, 0),
-            n_conv_layers=2, n_input_channels=1,
-            in_planes=32, activation=nn.ReLU, # ReLU
-            max_pool=True, conv_bias=False,    
-            dim=32, num_layers=3,
-            num_heads=4, num_classes=5, 
-            attn_dropout=0.3, dropout=0.3, 
-            mlp_size=64, positional_emb="learnable").to(device)
-    
-    summary(model=model,
-        input_size=(32, 1, 3000),
-        col_names=["input_size", "output_size", "num_params", "trainable"],
-        col_width=20,
-        row_settings=["var_names"]
-    )
-
     # criterion = weighted_CrossEntropyLoss
     metrics = [accuracy, f1]
     
-    trainable_params = filter(lambda p: p.requires_grad, model.parameters())
-    # optimizer = torch.optim.AdamW(trainable_params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01)
-    optimizer = torch.optim.Adam(model.parameters(), lr=3e-5, betas=(0.9, 0.999))
     # optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
     
-    batch_size = 32
+    batch_size = 128
     epochs = 100
     
     folds_data = load_folds_data(np_data_dir, 19)
     
+    results = dict()
+    
     for fold_id in range(19):
+        
+        model = CCT(kernel_sizes=[(1, 10), (1, 10), (1, 10)], stride=(1, 1), padding=(0, 0),
+        pooling_kernel_size=(1, 5), pooling_stride=(1, 5), pooling_padding=(0, 0),
+        n_conv_layers=3, n_input_channels=1,
+        in_planes=32, activation=nn.ReLU, # ReLU
+        max_pool=True, conv_bias=False,    
+        dim=32, num_layers=4,
+        num_heads=2, num_classes=5, 
+        attn_dropout=0.2, dropout=0.2, 
+        mlp_size=64, positional_emb="learnable").to(device)
+    
+        summary(model=model,
+            input_size=(128, 1, 3000),
+            col_names=["input_size", "output_size", "num_params", "trainable"],
+            col_width=20,
+            row_settings=["var_names"]
+        )
+        
+        trainable_params = filter(lambda p: p.requires_grad, model.parameters())
+        # optimizer = torch.optim.AdamW(trainable_params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01)
+        optimizer = torch.optim.Adam(model.parameters(), lr=3e-4, betas=(0.9, 0.999))
+        
         data_loader, valid_data_loader, data_count = data_generator_np(folds_data[fold_id][0],
                                                                     folds_data[fold_id][1], batch_size)
         weights_for_each_class = calc_class_weight(data_count)
@@ -131,14 +146,20 @@ def main():
         
         # print(len(data_loader))
         # print(len(valid_data_loader))
+        best_acc, best_f1 = 0, 0
 
         for epoch in tqdm(range(epochs)):
+            adjust_learning_rate(optimizer=optimizer, epoch=epoch)
             valid_acc, valid_f1 = train_epoch(model, epoch+1, epochs, 
                                             data_loader, optimizer, weighted_CrossEntropyLoss,
                                             weights_for_each_class, valid_data_loader)
+            best_acc, best_f1 = max(best_acc, valid_acc), max(best_f1, valid_f1)
             
             # print(f"Valid acc is {valid_acc}, valid_f1 is {valid_f1}")
-        
+            
+        results[test_subj_number] = best_acc
+        print(results)
+    
     
 if __name__ == '__main__':
     main()
