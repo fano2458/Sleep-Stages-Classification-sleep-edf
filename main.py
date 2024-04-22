@@ -3,9 +3,12 @@ import torch.nn as nn
 import numpy as np
 
 import json
+from tqdm import tqdm
+from torchinfo import summary
 from data_loader.data_loaders import *
 from model.loss import weighted_CrossEntropyLoss
 from model.metric import *
+from model.model import CCT
 from utils.util import load_folds_data, calc_class_weight
 
 
@@ -43,9 +46,10 @@ def train_epoch(model, epoch, total_epochs, data_loader, optimizer, criterion,
         f1_score = f1(output, target)
         
         # Accumulate the accuracy, loss and f1 score for each batch
-        train_acc += acc.item()
+        # print(acc, loss, f1_score)
+        train_acc += acc
         train_loss += loss.item()
-        train_f1 += f1_score.item()
+        train_f1 += f1_score
         
     # Calculate average accuracy, loss and f1 score over all training batches
     train_acc /= len(data_loader)
@@ -68,9 +72,9 @@ def train_epoch(model, epoch, total_epochs, data_loader, optimizer, criterion,
             f1_score = f1(output, target)
             
             # Accumulate the accuracy, loss and f1 score for each batch
-            valid_acc += acc.item()
+            valid_acc += acc
             valid_loss += loss.item()
-            valid_f1 += f1_score.item()
+            valid_f1 += f1_score
             
     # Calculate average accuracy, loss and f1 score over all validation batches
     valid_acc /= len(valid_data_loader)
@@ -83,16 +87,32 @@ def train_epoch(model, epoch, total_epochs, data_loader, optimizer, criterion,
 
 def main():
     
-    # model = 
-    # model.to()
+    model = CCT(kernel_sizes=[(1, 25), (1, 25)], stride=(1, 1), padding=(0, 0),
+            pooling_kernel_size=(1, 5), pooling_stride=(1, 5), pooling_padding=(0, 0),
+            n_conv_layers=2, n_input_channels=1,
+            in_planes=32, activation=nn.ReLU, # ReLU
+            max_pool=True, conv_bias=False,    
+            dim=32, num_layers=3,
+            num_heads=4, num_classes=5, 
+            attn_dropout=0.3, dropout=0.3, 
+            mlp_size=64, positional_emb="learnable").to(device)
     
+    summary(model=model,
+        input_size=(32, 1, 3000),
+        col_names=["input_size", "output_size", "num_params", "trainable"],
+        col_width=20,
+        row_settings=["var_names"]
+    )
+
     # criterion = weighted_CrossEntropyLoss
     metrics = [accuracy, f1]
     
-    # trainable_params = filter(lambda p: p.requires_grad, model.parameters())
+    trainable_params = filter(lambda p: p.requires_grad, model.parameters())
     # optimizer = torch.optim.AdamW(trainable_params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01)
+    optimizer = torch.optim.Adam(model.parameters(), lr=3e-5, betas=(0.9, 0.999))
+    # optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
     
-    batch_size = 128
+    batch_size = 32
     epochs = 100
     
     folds_data = load_folds_data(np_data_dir, 19)
@@ -109,13 +129,15 @@ def main():
         # print(next(iter(data_loader))[0].shape)
         print("Test subject is", test_subj_number)
         
-        print(len(data_loader))
-        print(len(valid_data_loader))
+        # print(len(data_loader))
+        # print(len(valid_data_loader))
 
-        # for epoch in range(epochs):
-        #     valid_acc, valid_f1 = train_epoch(model, epoch+1, epochs, 
-        #                                     data_loader, optimizer, criterion,
-        #                                     weights_for_each_class, valid_data_loader)
+        for epoch in tqdm(range(epochs)):
+            valid_acc, valid_f1 = train_epoch(model, epoch+1, epochs, 
+                                            data_loader, optimizer, weighted_CrossEntropyLoss,
+                                            weights_for_each_class, valid_data_loader)
+            
+            # print(f"Valid acc is {valid_acc}, valid_f1 is {valid_f1}")
         
     
 if __name__ == '__main__':
