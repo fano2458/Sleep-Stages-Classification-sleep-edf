@@ -9,7 +9,7 @@ from glob import glob
 import math
 
 
-def load_folds_data(np_data_path, n_folds):
+def load_folds_data_orig(np_data_path, n_folds):
     files = sorted(glob(os.path.join(np_data_path, "*.npz")))
     if "78" in np_data_path:
         r_p_path = r"utils/r_permute_78.npy"
@@ -70,13 +70,59 @@ def load_folds_data(np_data_path, n_folds):
     #     print(os.path.split(files_pairs[x][0])[-1][3:5], os.path.split(files_pairs[x][1])[-1][3:5])
 
     train_files = np.array_split(files_pairs, n_folds)
+    
+    print(train_files)
+    
+    raise "Error"
+    
     folds_data = {}
     for fold_id in range(n_folds):
-        subject_files = train_files[fold_id]
-        subject_files = [item for sublist in subject_files for item in sublist]
+        test_files = train_files[fold_id]
+        test_files = [item for sublist in test_files for item in sublist]
+        # select validation subject
+        try:
+            valid_files = train_files[fold_id-1]
+        except:
+            valid_files = train_files[n_folds-1]
+        valid_files = [item for sublist in valid_files for item in sublist]
         files_pairs2 = [item for sublist in files_pairs for item in sublist]
-        training_files = list(set(files_pairs2) - set(subject_files))
-        folds_data[fold_id] = [training_files, subject_files]
+        training_files = list(set(files_pairs2) - set(test_files) - set(valid_files))
+        folds_data[fold_id] = [training_files, valid_files, test_files]
+    return folds_data
+
+
+def load_folds_data(np_data_path, n_folds=19):
+    files = glob(os.path.join(np_data_path, "*.npz"))
+    files = sorted(files)
+
+    files_dict = dict()
+    for i in files:
+        file_name = os.path.split(i)[-1]
+        file_num = file_name[3:5]
+        if file_num not in files_dict:
+            files_dict[file_num] = [i]
+        else:
+            files_dict[file_num].append(i)
+
+    # Separate files by subject ID
+    all_files = list(set(f for files in files_dict.values() for f in files))
+    subject_files = {int(subject): files_dict[subject] for subject in files_dict}
+
+
+    # print(subject_files)
+    folds_data = {}
+    for fold_id in range(n_folds):
+        test_subject_files = np.array(subject_files[fold_id])
+        # print(test_subject_files)
+        try:
+            valid_subject_files = np.array(subject_files[fold_id-1])
+        except:
+            valid_subject_files = np.array(subject_files[n_folds-1])
+        
+        train_subject_files = np.array(list(set(all_files) - set(valid_subject_files) - set(test_subject_files)))
+        
+        folds_data[fold_id] = [train_subject_files, valid_subject_files, test_subject_files]
+
     return folds_data
 
 

@@ -1,2 +1,4 @@
 __pycache__/
 edf-*/
+results.txt
+checkpoints/

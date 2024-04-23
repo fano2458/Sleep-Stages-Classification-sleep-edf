@@ -33,11 +33,12 @@ class LoadDataset_from_numpy(Dataset):
         return self.len
     
 
-def data_generator_np(training_files, subject_files, batch_size):
+def data_generator_np(training_files, subject_files, test_files, batch_size):
     train_dataset = LoadDataset_from_numpy(training_files)
-    test_dataset = LoadDataset_from_numpy(subject_files)
+    valid_dataset = LoadDataset_from_numpy(subject_files)
+    test_dataset = LoadDataset_from_numpy(test_files)
     
-    all_ys = np.concatenate((train_dataset.y_data, test_dataset.y_data))
+    all_ys = np.concatenate((train_dataset.y_data, valid_dataset.y_data, test_dataset.y_data))
     all_ys = all_ys.tolist()
     num_classes = len(np.unique(all_ys))
     counts = [all_ys.count(i) for i in range(num_classes)]
@@ -48,10 +49,16 @@ def data_generator_np(training_files, subject_files, batch_size):
                                                drop_last=False,
                                                num_workers=0)
     
+    valid_loader = torch.utils.data.DataLoader(dataset=valid_dataset,
+                                              batch_size=batch_size,
+                                              shuffle=False,
+                                              drop_last=False,
+                                              num_workers=0)
+    
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                               batch_size=batch_size,
                                               shuffle=False,
                                               drop_last=False,
                                               num_workers=0)
 
-    return train_loader, test_loader, counts
+    return train_loader, valid_loader, test_loader, counts
