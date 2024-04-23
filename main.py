@@ -10,6 +10,7 @@ from data_loader.data_loaders import *
 from model.loss import weighted_CrossEntropyLoss
 from model.metric import *
 from model.model import CCT
+from model.attn_model import AttnSleep
 from utils.util import load_folds_data, calc_class_weight
 
 
@@ -136,9 +137,12 @@ def save_to_csv(data, filename):
 
 def main():
     # load config parameters
-    config_name = 'cct_config'
-    with open(config_name+'.json', 'r') as jsonfile:
-        config = json.load(jsonfile)
+    config_name = 'attn_sleep_config'
+    try:
+        with open(config_name+'.json', 'r') as jsonfile:
+            config = json.load(jsonfile)
+    except:
+        print("no such config exists")
     
     
     # Define the directory path
@@ -166,13 +170,14 @@ def main():
     results = dict()
     
     for fold_id in tqdm(range(20)):        
-        model = CCT(kernel_sizes=config['kernel_sizes'], stride=config['stride'], padding=config['padding'],
-        pooling_kernel_size=config['pooling_kernel_size'], pooling_stride=config['pooling_stride'], 
-        pooling_padding=config['pooling_padding'], n_conv_layers=config['n_conv_layers'], 
-        n_input_channels=config['n_input_channels'], in_planes=config['in_planes'], activation=config['activation'], # ReLU
-        max_pool=config['max_pool'], conv_bias=config['conv_bias'], dim=config['dim'], num_layers=config['num_layers'],
-        num_heads=config['num_heads'], num_classes=config['num_classes'], attn_dropout=config['attn_dropout'], 
-        dropout=config['dropout'], mlp_size=config['mlp_size'], positional_emb=config['positional_emb']).to(device)
+        model = AttnSleep().to(device)
+        # CCT(kernel_sizes=config['kernel_sizes'], stride=config['stride'], padding=config['padding'],
+        # pooling_kernel_size=config['pooling_kernel_size'], pooling_stride=config['pooling_stride'], 
+        # pooling_padding=config['pooling_padding'], n_conv_layers=config['n_conv_layers'], 
+        # n_input_channels=config['n_input_channels'], in_planes=config['in_planes'], activation=config['activation'], # ReLU
+        # max_pool=config['max_pool'], conv_bias=config['conv_bias'], dim=config['dim'], num_layers=config['num_layers'],
+        # num_heads=config['num_heads'], num_classes=config['num_classes'], attn_dropout=config['attn_dropout'], 
+        # dropout=config['dropout'], mlp_size=config['mlp_size'], positional_emb=config['positional_emb']).to(device)
     
         # summary(model=model,
         #     input_size=(128, 1, 3000),
