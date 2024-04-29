@@ -7,4 +7,4 @@ Leave-one-Subject-out (LOSO) cross-validation is performed. Thus, one subject is
 
 150 epochs are used during the training with Early Stopping technique, where patience were set to 15.
 
-Implementation is based on [this code](https://github.com/emadeldeen24/AttnSleep.git)
+Implementation is based on [this](https://github.com/emadeldeen24/AttnSleep.git) and [this](https://github.com/gist-ailab/SleePyCo/tree/main) codes.
