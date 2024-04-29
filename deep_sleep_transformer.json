@@ -1,0 +1,11 @@
+{
+    "activation": "ReLU",
+    "dim": 16,
+    "num_layers": 5,
+    "num_heads": 2,
+    "num_classes": 5,
+    "attn_dropout": 0.2,
+    "dropout": 0.2,
+    "mlp_size": 128,
+    "positional_emb": "learnable"
+}

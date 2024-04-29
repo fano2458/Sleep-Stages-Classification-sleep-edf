@@ -9,9 +9,14 @@ from torchinfo import summary
 from data_loader.data_loaders import *
 from model.loss import weighted_CrossEntropyLoss
 from model.metric import *
+
 from model.model import CCT
 from model.attn_model import AttnSleep
+from model.cnn_model import CNN_Transformer
+
 from utils.util import load_folds_data, calc_class_weight
+
+from time import time
 
 
 seed = 2024
@@ -114,7 +119,7 @@ def evaluate_model(model, test_data_loader, folder_path, config_name, test_sub_n
       test_acc: Average accuracy over all test batches.
       test_f1: Average F1 score over all test batches.
   """
-
+  begin = time()
   model.eval()
 
   # Initialize accumulators for test accuracy, loss and f1 score
@@ -165,7 +170,7 @@ def evaluate_model(model, test_data_loader, folder_path, config_name, test_sub_n
   plt.savefig('{}/conf_matrix/{}_{}_'.format(folder_path, config_name, test_sub_num) + 'confusion_matrix.png')
   plt.close()  # Close the plot window
 
-  return test_acc, test_f1
+  return test_acc, test_f1, time()-begin
 
 
 def plot_training_results(train_acc, train_loss, valid_acc, valid_loss, config_name, test_sub_num, epochs, folder_path):
@@ -225,7 +230,7 @@ def create_dir(folder_path):
 
 def main():
     # load config parameters
-    config_name = 'attn_sleep_config' #'attn_sleep_config'
+    config_name = 'deep_sleep_transformer' #'attn_sleep_config'
     try:
         with open(config_name+'.json', 'r') as jsonfile:
             config = json.load(jsonfile)
@@ -258,6 +263,7 @@ def main():
     # print(config['kernel_sizes'])
     
     results = dict()
+    summary_seen = False
     
     for fold_id in tqdm(range(20)):        
         # model = CCT(kernel_sizes=config['kernel_sizes'], stride=config['stride'], padding=config['padding'],
@@ -267,15 +273,19 @@ def main():
         # max_pool=config['max_pool'], conv_bias=config['conv_bias'], dim=config['dim'], num_layers=config['num_layers'],
         # num_heads=config['num_heads'], num_classes=config['num_classes'], attn_dropout=config['attn_dropout'], 
         # dropout=config['dropout'], mlp_size=config['mlp_size'], positional_emb=config['positional_emb']).to(device)
-        model = AttnSleep().to(device)
+        # model = AttnSleep().to(device)
+        model = CNN_Transformer(activation=config['activation'], dim=config['dim'], num_layers=config['num_layers'], num_heads=config['num_heads'], 
+                                num_classes=config['num_classes'], attn_dropout=config['attn_dropout'], dropout=config['dropout'], 
+                                mlp_size=config['mlp_size'], positional_emb=config['positional_emb']).to(device)
         
-    
-        # summary(model=model,
-        #     input_size=(128, 1, 3000),
-        #     col_names=["input_size", "output_size", "num_params", "trainable"],
-        #     col_width=20,
-        #     row_settings=["var_names"]
-        # )
+        if not summary_seen:
+            summary_seen = True
+            summary(model=model,
+                input_size=(128, 1, 3000),
+                col_names=["input_size", "output_size", "num_params", "trainable"],
+                col_width=20,
+                row_settings=["var_names"]
+            )
         
         trainable_params = filter(lambda p: p.requires_grad, model.parameters())
         # optimizer = torch.optim.AdamW(trainable_params, lr=0.001, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01)
@@ -308,6 +318,7 @@ def main():
         train_losses = []
         valid_accs = []
         valid_losses = []
+        total_eval_time = 0
 
         for epoch in range(epochs): # epochs
             adjust_learning_rate(optimizer=optimizer, epoch=epoch)
@@ -338,7 +349,8 @@ def main():
         
         print('Loading best weights')
         model.load_state_dict(torch.load('{}/{}_best.pt'.format(folder_path, config_name)))
-        test_acc, test_f1 = evaluate_model(model, test_data_loader, folder_path, config_name, test_subj_number)
+        test_acc, test_f1, eval_time = evaluate_model(model, test_data_loader, folder_path, config_name, test_subj_number)
+        total_eval_time += eval_time
         
         plot_training_results(train_accs, train_losses, valid_accs, valid_losses, config_name, test_subj_number, epoch+1, folder_path)
         
@@ -346,6 +358,7 @@ def main():
         print(results)
         
     save_to_csv(results, '{}/{}_test_results.csv'.format(folder_path, config_name))
+    print("Average Evaluation time is", total_eval_time/epochs)
 
     
 if __name__ == '__main__':
